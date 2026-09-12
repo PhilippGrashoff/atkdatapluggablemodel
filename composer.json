@@ -1,0 +1,24 @@
+{
+  "name": "philippgrashoff/atkdatapluggablemodel",
+  "description": "",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": "8.3.*",
+    "atk4/data": "6.*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "12.*",
+    "phpstan/phpstan": "2.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "PhilippR\\Atk4\\PluggableModel\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "PhilippR\\Atk4\\PluggableModel\\Tests\\": "tests"
+    }
+  }
+}
