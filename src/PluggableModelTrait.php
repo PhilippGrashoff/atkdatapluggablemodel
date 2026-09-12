@@ -24,12 +24,14 @@ trait PluggableModelTrait
                 'system' => true
             ]
         );
+
         $this->addField(
             'implementation_class_name',
             [
                 'system' => true
             ]
         );
+
         $this->addField(
             'data',
             [
