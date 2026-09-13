@@ -4,7 +4,7 @@ namespace PhilippR\Atk4\PluggableModel;
 
 use Atk4\Data\Model;
 
-abstract class BasePluggable
+abstract class BaseImplementation
 {
     public static string $name;
 

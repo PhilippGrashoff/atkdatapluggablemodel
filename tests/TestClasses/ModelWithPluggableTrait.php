@@ -18,15 +18,14 @@ class ModelWithPluggableTrait extends Model
     {
         parent::init();
         $this->addField('name');
-        $this->addPluggableFields();
-        $this->addPluggableHooks();
+        $this->addPluggableFieldsAndHooks();
     }
 
     protected function getAvailableImplementations(): array
     {
         return [
-            Pluggable1::class,
-            Pluggable2::class,
+            Implementation1::class => Implementation1::$name,
+            Implementation2::class => Implementation2::$name,
         ];
     }
 }

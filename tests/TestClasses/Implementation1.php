@@ -2,10 +2,12 @@
 
 namespace PhilippR\Atk4\PluggableModel\Tests\TestClasses;
 
-use PhilippR\Atk4\PluggableModel\BasePluggable;
+use PhilippR\Atk4\PluggableModel\BaseImplementation;
 
-class Pluggable1 extends BasePluggable
+class Implementation1 extends BaseImplementation
 {
+
+    public static string $name = 'Implementation1';
 
     public static function getFieldDefinitions(): array
     {
@@ -17,6 +19,6 @@ class Pluggable1 extends BasePluggable
 
     public function executeSomething(): void
     {
-        $_ENV['TEST_ENV_VAR'] = Pluggable1::class;
+        $_ENV['TEST_ENV_VAR'] = Implementation1::class;
     }
 }

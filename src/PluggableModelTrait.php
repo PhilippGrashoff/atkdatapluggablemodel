@@ -12,10 +12,10 @@ trait PluggableModelTrait
 {
     public bool $addDynamicFields = true;
 
-    protected ?BasePluggable $implementation = null;
+    protected ?BaseImplementation $implementation = null;
     protected ?int $containsManyLoadedForEntityId = null;
 
-    protected function addPluggableFields(): void
+    protected function addPluggableFieldsAndHooks(): void
     {
         $this->addField(
             'implementation_class',
@@ -25,6 +25,7 @@ trait PluggableModelTrait
             ]
         );
 
+        /** This field is used to store the implementation class name without needing to pull the name from the actual implementation class. Handy for UI tables etc.*/
         $this->addField(
             'implementation_class_name',
             [
@@ -32,6 +33,7 @@ trait PluggableModelTrait
             ]
         );
 
+        /** In this field all data from additional implementation class fields are stored */
         $this->addField(
             'data',
             [
@@ -40,10 +42,7 @@ trait PluggableModelTrait
                 'system' => true
             ]
         );
-    }
 
-    protected function addPluggableHooks(): void
-    {
         $this->onHook(
             Model::HOOK_AFTER_LOAD,
             function (self $entity) {
@@ -73,7 +72,7 @@ trait PluggableModelTrait
         return [];
     }
 
-    public function getImplementation(): BasePluggable
+    public function getImplementation(): BaseImplementation
     {
         $this->assertIsEntity();
 
@@ -100,9 +99,6 @@ trait PluggableModelTrait
             return;
         }
         $this->set('implementation_class_name', $implementationClass::$name);
-        if ($this->hasField('name') && !$this->get('name')) {
-            $this->set('name', $implementationClass::$name);
-        }
     }
 
     protected function addFieldsFromImplementationClass(): void
