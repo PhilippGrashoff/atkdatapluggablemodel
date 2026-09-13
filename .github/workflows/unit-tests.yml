@@ -1,9 +1,15 @@
+
 name: Unit Tests
 
 on:
   push:
     branches:
       - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   unit-test:
@@ -20,7 +26,7 @@ jobs:
       LOG_COVERAGE: "${{ fromJSON('{true: \"1\", false: \"\"}')[matrix.php == '8.3' && matrix.type == 'Phpunit' && (github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')))] }}"
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       - name: Configure PHP
         run: |
@@ -30,10 +36,10 @@ jobs:
       - name: Setup cache 1/2
         id: composer-cache
         run: |
-          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+          echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Setup cache 2/2
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.type }}-${{ hashFiles('composer.json') }}
@@ -52,11 +58,11 @@ jobs:
 
       - name: Init
         run: |
-          if [ -n "$LOG_COVERAGE" ]; then mkdir coverage; fi
+          if [ -n "$LOG_COVERAGE" ]; then mkdir -p coverage; fi
 
-      - name: "Run tests"
+      - name: Run tests
         run: |
-          php -d opcache.enable_cli=1 vendor/bin/phpunit --exclude-group none $(if [ -n "$LOG_COVERAGE" ]; then echo --coverage-text; else echo --no-coverage; fi)
+          php -d opcache.enable_cli=1 vendor/bin/phpunit --exclude-group none $(if [ -n "$LOG_COVERAGE" ]; then echo --coverage-text --coverage-php coverage/phpunit.cov; else echo --no-coverage; fi)
 
       - name: Upload coverage logs 1/2 (only for coverage)
         if: env.LOG_COVERAGE
@@ -66,7 +72,7 @@ jobs:
 
       - name: Upload coverage logs 2/2 (only for coverage)
         if: env.LOG_COVERAGE
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
