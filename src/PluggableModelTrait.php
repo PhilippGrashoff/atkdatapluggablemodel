@@ -15,7 +15,7 @@ trait PluggableModelTrait
     protected ?BaseImplementation $implementation = null;
     protected ?int $containsManyLoadedForEntityId = null;
 
-    protected function addPluggableFieldsAndHooks(): void
+    protected function addPluggableFieldsAndHooks(string $getFieldDefinitionsMethodName = 'getFieldDefinitions'): void
     {
         $this->addField(
             'implementation_class',
@@ -45,8 +45,8 @@ trait PluggableModelTrait
 
         $this->onHook(
             Model::HOOK_AFTER_LOAD,
-            function (self $entity) {
-                $entity->addFieldsFromImplementationClass();
+            function (self $entity) use ($getFieldDefinitionsMethodName) {
+                $entity->addFieldsFromImplementationClass($getFieldDefinitionsMethodName);
                 if ($entity->get('implementation_class')) {
                     $this->getField('implementation_class')->readOnly = true;
                 }
@@ -55,8 +55,8 @@ trait PluggableModelTrait
 
         $this->onHook(
             Model::HOOK_BEFORE_SAVE,
-            function (self $entity, bool $isUpdate) {
-                $entity->setImplementationClassFieldsToData();
+            function (self $entity, bool $isUpdate) use ($getFieldDefinitionsMethodName) {
+                $entity->setImplementationClassFieldsToData($getFieldDefinitionsMethodName);
                 $entity->setImplementationClassFieldValues();
             }
         );
@@ -101,7 +101,7 @@ trait PluggableModelTrait
         $this->set('implementation_class_name', $implementationClass::$name);
     }
 
-    protected function addFieldsFromImplementationClass(): void
+    protected function addFieldsFromImplementationClass(string $getFieldDefinitionsMethodName): void
     {
         if (!$this->addDynamicFields) {
             return;
@@ -111,7 +111,7 @@ trait PluggableModelTrait
             return;
         }
 
-        foreach ($implementationClass::getFieldDefinitions() as $fieldName => $seed) {
+        foreach ($implementationClass::$getFieldDefinitionsMethodName() as $fieldName => $seed) {
             if (!$this->getModel()->hasField($fieldName)) {
                 $field = $this->getModel()->addField($fieldName, $seed);
                 $field->neverPersist = true;
@@ -157,7 +157,7 @@ trait PluggableModelTrait
         }
     }
 
-    protected function setImplementationClassFieldsToData(): void
+    protected function setImplementationClassFieldsToData(string $getFieldDefinitionsMethodName): void
     {
         if (!$this->addDynamicFields) {
             return;
@@ -172,7 +172,7 @@ trait PluggableModelTrait
 
         $data = [];
         $fieldValidations = $implementationClass::getFieldValidations();
-        foreach ($implementationClass::getFieldDefinitions() as $fieldName => $seed) {
+        foreach ($implementationClass::$getFieldDefinitionsMethodName() as $fieldName => $seed) {
             if (
                 method_exists($this, 'encryptFieldValue')
                 && in_array($fieldName, $implementationClass::getEncryptedFields())
