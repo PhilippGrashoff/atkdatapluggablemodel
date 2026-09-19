@@ -13,6 +13,7 @@ For example, there is an SMTP connector with typical SMTP fields (server, port, 
 - As soon as an implementation class for a connector entity is selected and saved, the additional fields of the implementation are automatically added to the Connector model after the entity is loaded.
 - All additional fields are stored in a single JSON field, meaning no Database altering is needed when you add a new implementation/extend an existing one.
 - as the connectors store credentials which should not be stored plain in the database, you can define for each implementation which fields should be stored encrypted. The actual encryption logic is done in the Connector model - you just need to pass a key.
+See the tests and the simple test implementations on how to use this library.
 
 ## ContainsMany
 Models using PluggableModelTrait can also contain many instances of another model. This is sometimes needed if an implementation needs enhanced configuration which cannot be created solely by additional fields.

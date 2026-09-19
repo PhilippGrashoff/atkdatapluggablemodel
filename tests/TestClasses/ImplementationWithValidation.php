@@ -5,15 +5,14 @@ namespace PhilippR\Atk4\PluggableModel\Tests\TestClasses;
 use Atk4\Data\ValidationException;
 use PhilippR\Atk4\PluggableModel\BaseImplementation;
 
-class ImplementationWithValidationAndEncryption extends BaseImplementation
+class ImplementationWithValidation extends BaseImplementation
 {
-    public static string $name = 'ImplementationWithValidationAndEncryption';
+    public static string $name = 'ImplementationWithValidation';
 
     public static function getFieldDefinitions(): array
     {
         return [
             'email' => ['type' => 'string'],
-            'secret' => ['type' => 'string'],
         ];
     }
 
@@ -26,10 +25,5 @@ class ImplementationWithValidationAndEncryption extends BaseImplementation
                 }
             },
         ];
-    }
-
-    public static function getEncryptedFields(): array
-    {
-        return ['secret'];
     }
 }

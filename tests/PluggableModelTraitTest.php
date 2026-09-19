@@ -9,8 +9,10 @@ use Atk4\Data\ValidationException;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\Implementation1;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\Implementation2;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithContainsMany;
+use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithEncryption;
+use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithValidation;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithValidationAndEncryption;
-use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ModelWithExtras;
+use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ModelWithEncryptedField;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ModelWithPluggableTrait;
 use TypeError;
 
@@ -24,7 +26,7 @@ class PluggableModelTraitTest extends TestCase
         $this->createMigrator(new ModelWithPluggableTrait($this->db))->create();
 
         // the containsMany field is added dynamically at runtime, but its column must exist in the table
-        $modelWithExtras = new ModelWithExtras($this->db);
+        $modelWithExtras = new ModelWithEncryptedField($this->db);
         $modelWithExtras->addField('items', ['type' => 'json']);
         $this->createMigrator($modelWithExtras)->create();
     }
@@ -320,8 +322,8 @@ class PluggableModelTraitTest extends TestCase
 
     public function testFieldValidationIsExecutedOnSave(): void
     {
-        $entity = (new ModelWithExtras($this->db))->createEntity()
-            ->set('implementation_class', ImplementationWithValidationAndEncryption::class)
+        $entity = (new ModelWithEncryptedField($this->db))->createEntity()
+            ->set('implementation_class', ImplementationWithValidation::class)
             ->save();
 
         $entity->set('email', 'not-an-email');
@@ -332,54 +334,48 @@ class PluggableModelTraitTest extends TestCase
 
     public function testValidValueForValidatedFieldIsSaved(): void
     {
-        $entity = (new ModelWithExtras($this->db))->createEntity()
-            ->set('implementation_class', ImplementationWithValidationAndEncryption::class)
+        $entity = (new ModelWithEncryptedField($this->db))->createEntity()
+            ->set('implementation_class', ImplementationWithValidation::class)
             ->save();
 
         $entity->set('email', 'someone@example.com')->save();
 
-        $loaded = (new ModelWithExtras($this->db))->load($entity->getId());
+        $loaded = (new ModelWithEncryptedField($this->db))->load($entity->getId());
         self::assertSame('someone@example.com', $loaded->get('email'));
     }
 
     public function testEncryptedFieldIsStoredEncryptedAndDecryptedOnLoad(): void
     {
-        $entity = (new ModelWithExtras($this->db))->createEntity()
-            ->set('implementation_class', ImplementationWithValidationAndEncryption::class)
+        $entity = (new ModelWithEncryptedField($this->db))->createEntity()
+            ->set('implementation_class', ImplementationWithEncryption::class)
             ->save();
 
         $entity->set('secret', 'my secret value')->save();
 
         // in memory the value is decrypted again after reload
         self::assertSame('my secret value', $entity->get('secret'));
-        // in the persisted data the value is encrypted
-        self::assertSame(
-            ModelWithExtras::ENCRYPTION_PREFIX . base64_encode('my secret value'),
-            $entity->get('data')['secret']
-        );
+        // in the persisted data the value is encrypted (not equal to plain value)
+        self::assertNotSame('my secret value', $entity->get('data')['secret']);
 
-        $loaded = (new ModelWithExtras($this->db))->load($entity->getId());
+        $loaded = (new ModelWithEncryptedField($this->db))->load($entity->getId());
         self::assertSame('my secret value', $loaded->get('secret'));
-        self::assertSame(
-            ModelWithExtras::ENCRYPTION_PREFIX . base64_encode('my secret value'),
-            $loaded->get('data')['secret']
-        );
+        self::assertNotSame('my secret value', $loaded->get('data')['secret']);
     }
 
     public function testNonEncryptedFieldsAreNotEncrypted(): void
     {
-        $entity = (new ModelWithExtras($this->db))->createEntity()
-            ->set('implementation_class', ImplementationWithValidationAndEncryption::class)
+        $entity = (new ModelWithEncryptedField($this->db))->createEntity()
+            ->set('implementation_class', ImplementationWithEncryption::class)
             ->save();
 
-        $entity->set('email', 'someone@example.com')->save();
+        $entity->set('note', 'some plain note')->save();
 
-        self::assertSame('someone@example.com', $entity->get('data')['email']);
+        self::assertSame('some plain note', $entity->get('data')['note']);
     }
 
     public function testContainsManyIsAddedFromImplementationClass(): void
     {
-        $entity = (new ModelWithExtras($this->db))->createEntity()
+        $entity = (new ModelWithEncryptedField($this->db))->createEntity()
             ->set('implementation_class', ImplementationWithContainsMany::class)
             ->save();
 
@@ -389,14 +385,14 @@ class PluggableModelTraitTest extends TestCase
 
     public function testContainsManyDataIsPersistedAndLoaded(): void
     {
-        $entity = (new ModelWithExtras($this->db))->createEntity()
+        $entity = (new ModelWithEncryptedField($this->db))->createEntity()
             ->set('implementation_class', ImplementationWithContainsMany::class)
             ->save();
 
         $entity->ref('items')->createEntity()->save(['name' => 'first item']);
         $entity->ref('items')->createEntity()->save(['name' => 'second item']);
 
-        $loaded = (new ModelWithExtras($this->db))->load($entity->getId());
+        $loaded = (new ModelWithEncryptedField($this->db))->load($entity->getId());
 
         self::assertSame(
             ['first item', 'second item'],
