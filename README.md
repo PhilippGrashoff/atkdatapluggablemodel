@@ -8,9 +8,9 @@ For example, there is an SMTP connector with typical SMTP fields (server, port, 
 
 ### implementation using this library
 - There are Implementations for SmtpConnector, SomeRestConnector, SomeOtherRestConnector etc. They extend `BaseImplementation` and carry the actual execution logic (connecting to an SMTP server, "talking" to a specific REST API etc.).
-- These Implementations define the additional fields they need (see above) `getFieldDefinitions()`.
-- A generic Connector model uses `PluggableModelTrait`
-- As soon as an implementation class for a connector entity is selected and saved, the additional fields of the implementation are automatically added to the Connector model after the entity is loaded.
+- These Implementations define the additional fields they need in `getFieldDefinitions()`.
+- A generic Connector model uses `PluggableModelTrait`. The model itself is very simple and only contains an `implementation_class` field.
+- As soon as `implementation_class` for a Connector entity is selected and saved, the additional fields of the implementation are automatically added to the Connector model after the entity is loaded.
 - All additional fields are stored in a single JSON field, meaning no Database altering is needed when you add a new implementation/extend an existing one.
 - as the connectors store credentials which should not be stored plain in the database, you can define for each implementation which fields should be stored encrypted. The actual encryption logic is done in the Connector model - you just need to pass a key.
 See the tests and the simple test implementations on how to use this library.
