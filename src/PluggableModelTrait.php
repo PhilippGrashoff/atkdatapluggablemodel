@@ -15,7 +15,7 @@ trait PluggableModelTrait
     protected ?BaseImplementation $implementation = null;
     protected ?int $containsManyLoadedForEntityId = null;
 
-    protected function addPluggableFieldsAndHooks(string $getFieldDefinitionsMethodName = 'getFieldDefinitions'): void
+    protected function addPluggableFieldsAndHooks(string $getFieldDefinitionsMethodName = 'getFieldDefinitions', string $getContainsManyDefinitionsMethodName = 'getContainsManyDefinitions'): void
     {
         $this->addField(
             'implementation_class',
@@ -45,8 +45,8 @@ trait PluggableModelTrait
 
         $this->onHook(
             Model::HOOK_AFTER_LOAD,
-            function (self $entity) use ($getFieldDefinitionsMethodName) {
-                $entity->addFieldsFromImplementationClass($getFieldDefinitionsMethodName);
+            function (self $entity) use ($getFieldDefinitionsMethodName, $getContainsManyDefinitionsMethodName) {
+                $entity->addFieldsFromImplementationClass($getFieldDefinitionsMethodName, $getContainsManyDefinitionsMethodName);
                 if ($entity->get('implementation_class')) {
                     $this->getField('implementation_class')->readOnly = true;
                 }
@@ -101,7 +101,7 @@ trait PluggableModelTrait
         $this->set('implementation_class_name', $implementationClass::$name);
     }
 
-    protected function addFieldsFromImplementationClass(string $getFieldDefinitionsMethodName): void
+    protected function addFieldsFromImplementationClass(string $getFieldDefinitionsMethodName, string $getContainsManyDefinitionsMethodName): void
     {
         if (!$this->addDynamicFields) {
             return;
@@ -142,7 +142,7 @@ trait PluggableModelTrait
         }
 
         $needsReload = false;
-        foreach ($implementationClass::getContainsManyDefinitions() as $fieldName => $seed) {
+        foreach ($implementationClass::$getContainsManyDefinitionsMethodName() as $fieldName => $seed) {
             if (!$this->getModel()->hasField($fieldName)) {
                 $this->getModel()->containsMany($fieldName, $seed);
             }
