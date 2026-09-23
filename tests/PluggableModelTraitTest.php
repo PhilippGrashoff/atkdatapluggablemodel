@@ -11,7 +11,6 @@ use PhilippR\Atk4\PluggableModel\Tests\TestClasses\Implementation2;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithContainsMany;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithEncryption;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithValidation;
-use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithValidationAndEncryption;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ModelWithEncryptedField;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ModelWithPluggableTrait;
 use TypeError;
@@ -113,9 +112,9 @@ class PluggableModelTraitTest extends TestCase
         self::assertFalse($entity->hasField('field3'));
     }
 
-    public function testNoFieldsAreAddedIfAddDynamicFieldsIsDisabled(): void
+    public function testNoFieldsAreAddedIfAddFieldsFromImplementationIsDisabled(): void
     {
-        $entity = (new ModelWithPluggableTrait($this->db, ['addDynamicFields' => false]))->createEntity()
+        $entity = (new ModelWithPluggableTrait($this->db, ['addFieldsFromImplementation' => false]))->createEntity()
             ->set('implementation_class', Implementation1::class)
             ->save();
 
@@ -123,6 +122,17 @@ class PluggableModelTraitTest extends TestCase
         self::assertFalse($entity->hasField('field2'));
         // implementation_class_name is set independently of dynamic fields
         self::assertSame(Implementation1::$name, $entity->get('implementation_class_name'));
+    }
+
+    public function testDataFieldIsNotAddedIfAddFieldsFromImplementationIsDisabled(): void
+    {
+        $model = new ModelWithPluggableTrait($this->db, ['addFieldsFromImplementation' => false]);
+
+        // implementation_class and implementation_class_name are always added
+        self::assertTrue($model->hasField('implementation_class'));
+        self::assertTrue($model->hasField('implementation_class_name'));
+        // the data field is only needed for dynamic fields, so it must be omitted
+        self::assertFalse($model->hasField('data'));
     }
 
     public function testImplementationClassNameIsSetOnSave(): void
