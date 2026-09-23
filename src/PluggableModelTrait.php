@@ -10,12 +10,15 @@ use Atk4\Data\Model;
  */
 trait PluggableModelTrait
 {
-    public bool $addDynamicFields = true;
+    public bool $addFieldsFromImplementation = true;
 
     protected ?BaseImplementation $implementation = null;
     protected ?int $containsManyLoadedForEntityId = null;
 
-    protected function addPluggableFieldsAndHooks(string $getFieldDefinitionsMethodName = 'getFieldDefinitions', string $getContainsManyDefinitionsMethodName = 'getContainsManyDefinitions'): void
+    protected function addPluggableFieldsAndHooks(
+        string $getFieldDefinitionsMethodName = 'getFieldDefinitions',
+        string $getContainsManyDefinitionsMethodName = 'getContainsManyDefinitions'
+    ): void
     {
         $this->addField(
             'implementation_class',
@@ -33,20 +36,24 @@ trait PluggableModelTrait
             ]
         );
 
-        /** In this field all data from additional implementation class fields are stored */
-        $this->addField(
-            'data',
-            [
-                'type' => 'json',
-                'default' => [],
-                'system' => true
-            ]
-        );
+        //only needed if additional fields from implementations are needed. If only the link to an implemenation_class is
+        //used, this field can be omitted
+        if ($this->addFieldsFromImplementation) {
+            /** In this field all data from additional implementation class fields are stored */
+            $this->addField(
+                'data',
+                [
+                    'type' => 'json',
+                    'default' => [],
+                    'system' => true
+                ]
+            );
+        }
 
         $this->onHook(
             Model::HOOK_AFTER_LOAD,
             function (self $entity) use ($getFieldDefinitionsMethodName, $getContainsManyDefinitionsMethodName) {
-                $entity->addFieldsFromImplementationClass($getFieldDefinitionsMethodName, $getContainsManyDefinitionsMethodName);
+                $entity->addFieldsFromImplementation($getFieldDefinitionsMethodName, $getContainsManyDefinitionsMethodName);
                 if ($entity->get('implementation_class')) {
                     $this->getField('implementation_class')->readOnly = true;
                 }
@@ -57,7 +64,7 @@ trait PluggableModelTrait
             Model::HOOK_BEFORE_SAVE,
             function (self $entity, bool $isUpdate) use ($getFieldDefinitionsMethodName) {
                 $entity->setImplementationClassFieldsToData($getFieldDefinitionsMethodName);
-                $entity->setImplementationClassFieldValues();
+                $entity->setImplementationClassName();
             }
         );
     }
@@ -89,7 +96,7 @@ trait PluggableModelTrait
         return $this->implementation;
     }
 
-    protected function setImplementationClassFieldValues(): void
+    protected function setImplementationClassName(): void
     {
         $implementationClass = $this->get('implementation_class');
         if (
@@ -101,9 +108,9 @@ trait PluggableModelTrait
         $this->set('implementation_class_name', $implementationClass::$name);
     }
 
-    protected function addFieldsFromImplementationClass(string $getFieldDefinitionsMethodName, string $getContainsManyDefinitionsMethodName): void
+    protected function addFieldsFromImplementation(string $getFieldDefinitionsMethodName, string $getContainsManyDefinitionsMethodName): void
     {
-        if (!$this->addDynamicFields) {
+        if (!$this->addFieldsFromImplementation) {
             return;
         }
         $implementationClass = $this->get('implementation_class');
@@ -159,7 +166,7 @@ trait PluggableModelTrait
 
     protected function setImplementationClassFieldsToData(string $getFieldDefinitionsMethodName): void
     {
-        if (!$this->addDynamicFields) {
+        if (!$this->addFieldsFromImplementation) {
             return;
         }
         $implementationClass = $this->get('implementation_class');
