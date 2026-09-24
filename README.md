@@ -20,4 +20,4 @@ Models using PluggableModelTrait can also contain many instances of another mode
 In the current implementation, there are some things to know:
 - if one or many containsMany relations should be used, then the database needs to have a column for each containsMany relation.
 - if a Model using PluggableModelTrait containsMany other models, then each entity always has to be loaded twice if the Implementation defines containsMany relations. This is because when loading the model initially, it is unknown which class the containsMany fields represent. 
-- This is not an issue with a single Entity, but when iterating over a Model using PluggableModelTrait, then `addDynamicFields` should be set to false, e.g. when displaying all entities in a UI grid.
+- This is not an issue with a single Entity, but when iterating over a Model using PluggableModelTrait, then `addFieldsFromImplementation` should be set to false, e.g. when displaying all entities in a UI grid.
