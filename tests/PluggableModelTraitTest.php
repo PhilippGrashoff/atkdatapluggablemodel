@@ -12,6 +12,8 @@ use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithContainsMan
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithEncryption;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ImplementationWithValidation;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ModelWithEncryptedField;
+use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ModelWithNameField;
+use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ModelWithoutNameField;
 use PhilippR\Atk4\PluggableModel\Tests\TestClasses\ModelWithPluggableTrait;
 use TypeError;
 
@@ -23,6 +25,8 @@ class PluggableModelTraitTest extends TestCase
         parent::setUp();
         $this->db = new Sql('sqlite::memory:');
         $this->createMigrator(new ModelWithPluggableTrait($this->db))->create();
+        $this->createMigrator(new ModelWithNameField($this->db))->create();
+        $this->createMigrator(new ModelWithoutNameField($this->db))->create();
 
         // the containsMany field is added dynamically at runtime, but its column must exist in the table
         $modelWithExtras = new ModelWithEncryptedField($this->db);
@@ -408,5 +412,115 @@ class PluggableModelTraitTest extends TestCase
             ['first item', 'second item'],
             array_column($loaded->ref('items')->export(['name']), 'name')
         );
+    }
+
+
+    public function testNameFieldIsAddedIfAddNameFieldIsEnabled(): void
+    {
+        $model = new ModelWithNameField($this->db);
+
+        self::assertTrue($model->hasField('name'));
+        // in contrast to implementation_class_name, the name field is meant to be edited by users
+        self::assertFalse($model->getField('name')->system);
+        self::assertFalse($model->getField('name')->readOnly);
+    }
+
+    public function testNameFieldIsNotAddedByDefault(): void
+    {
+        $model = new ModelWithoutNameField($this->db);
+
+        self::assertFalse($model->hasField('name'));
+        self::assertTrue($model->hasField('implementation_class_name'));
+    }
+
+    public function testNameDefaultsToImplementationNameOnSave(): void
+    {
+        $entity = (new ModelWithNameField($this->db))->createEntity()
+            ->set('implementation_class', Implementation1::class)
+            ->save();
+
+        self::assertSame(Implementation1::$name, $entity->get('name'));
+        self::assertSame(Implementation1::$name, $entity->get('implementation_class_name'));
+
+        $loaded = (new ModelWithNameField($this->db))->load($entity->getId());
+        self::assertSame(Implementation1::$name, $loaded->get('name'));
+    }
+
+    public function testUserProvidedNameIsNotOverwrittenOnSave(): void
+    {
+        $entity = (new ModelWithNameField($this->db))->createEntity()
+            ->set('implementation_class', Implementation2::class)
+            ->set('name', 'my custom name')
+            ->save();
+
+        self::assertSame('my custom name', $entity->get('name'));
+        // implementation_class_name still holds the default name of the implementation
+        self::assertSame(Implementation2::$name, $entity->get('implementation_class_name'));
+
+        $loaded = (new ModelWithNameField($this->db))->load($entity->getId());
+        self::assertSame('my custom name', $loaded->get('name'));
+        self::assertSame(Implementation2::$name, $loaded->get('implementation_class_name'));
+    }
+
+    public function testNameCanBeChangedAfterImplementationClassIsSet(): void
+    {
+        $entity = (new ModelWithNameField($this->db))->createEntity()
+            ->set('implementation_class', Implementation1::class)
+            ->save();
+        self::assertSame(Implementation1::$name, $entity->get('name'));
+
+        $entity->set('name', 'renamed by user')->save();
+
+        $loaded = (new ModelWithNameField($this->db))->load($entity->getId());
+        self::assertSame('renamed by user', $loaded->get('name'));
+        self::assertSame(Implementation1::$name, $loaded->get('implementation_class_name'));
+    }
+
+    public function testNameIsOnlyDefaultedWhenImplementationClassChanges(): void
+    {
+        $entity = (new ModelWithNameField($this->db))->createEntity()
+            ->set('implementation_class', Implementation1::class)
+            ->save();
+
+        // implementation_class is not dirty on this save, so an emptied name must stay empty
+        $entity->set('name', null)->save();
+
+        self::assertNull($entity->get('name'));
+
+        $loaded = (new ModelWithNameField($this->db))->load($entity->getId());
+        self::assertNull($loaded->get('name'));
+    }
+
+    public function testNameStaysNullWithoutImplementationClass(): void
+    {
+        $entity = (new ModelWithNameField($this->db))->createEntity()
+            ->save();
+
+        self::assertNull($entity->get('implementation_class'));
+        self::assertNull($entity->get('implementation_class_name'));
+        self::assertNull($entity->get('name'));
+    }
+
+    public function testNameIsNotDefaultedIfModelAddsNameFieldItself(): void
+    {
+        // ModelWithPluggableTrait adds the name field on its own, the trait must still fill it
+        $entity = (new ModelWithPluggableTrait($this->db))->createEntity()
+            ->set('implementation_class', Implementation2::class)
+            ->save();
+
+        self::assertNull($entity->get('name'));
+    }
+
+    public function testSavingWorksWithoutNameField(): void
+    {
+        $entity = (new ModelWithoutNameField($this->db))->createEntity()
+            ->set('implementation_class', Implementation1::class)
+            ->save();
+
+        self::assertFalse($entity->hasField('name'));
+        self::assertSame(Implementation1::$name, $entity->get('implementation_class_name'));
+
+        $loaded = (new ModelWithoutNameField($this->db))->load($entity->getId());
+        self::assertSame(Implementation1::$name, $loaded->get('implementation_class_name'));
     }
 }

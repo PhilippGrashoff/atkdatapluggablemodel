@@ -17,7 +17,8 @@ trait PluggableModelTrait
 
     protected function addPluggableFieldsAndHooks(
         string $getFieldDefinitionsMethodName = 'getFieldDefinitions',
-        string $getContainsManyDefinitionsMethodName = 'getContainsManyDefinitions'
+        string $getContainsManyDefinitionsMethodName = 'getContainsManyDefinitions',
+        bool   $addNameField = false
     ): void
     {
         $this->addField(
@@ -35,6 +36,15 @@ trait PluggableModelTrait
                 'system' => true
             ]
         );
+
+        /** an additional name field freely editable for users. While implementation_class_name stores the default name,
+         * this field is meant to be used for user-editable names. Handy if e.g. users create several entities of the
+         * same implementation_class - then, this name can be used to distinguish them.
+         */
+        if ($addNameField) {
+            $this->addField('name');
+        }
+
 
         //only needed if additional fields from implementations are needed. If only the link to an implemenation_class is
         //used, this field can be omitted
@@ -62,9 +72,9 @@ trait PluggableModelTrait
 
         $this->onHook(
             Model::HOOK_BEFORE_SAVE,
-            function (self $entity, bool $isUpdate) use ($getFieldDefinitionsMethodName) {
+            function (self $entity, bool $isUpdate) use ($getFieldDefinitionsMethodName, $addNameField) {
                 $entity->setImplementationClassFieldsToData($getFieldDefinitionsMethodName);
-                $entity->setImplementationClassName();
+                $entity->setImplementationClassName($addNameField);
             }
         );
     }
@@ -96,7 +106,7 @@ trait PluggableModelTrait
         return $this->implementation;
     }
 
-    protected function setImplementationClassName(): void
+    protected function setImplementationClassName(bool $addNameField): void
     {
         $implementationClass = $this->get('implementation_class');
         if (
@@ -106,6 +116,9 @@ trait PluggableModelTrait
             return;
         }
         $this->set('implementation_class_name', $implementationClass::$name);
+        if ($addNameField && $this->get('name') === null) {
+            $this->set('name', $implementationClass::$name);
+        }
     }
 
     protected function addFieldsFromImplementation(string $getFieldDefinitionsMethodName, string $getContainsManyDefinitionsMethodName): void
